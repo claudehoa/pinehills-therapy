@@ -412,10 +412,14 @@ td.ther .tav{ margin-right:7px; }
 
 a.btn{ text-decoration:none; display:inline-block; }
 #wAuth{ margin-top:10px; }
+.w-pass{ display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; justify-content:center; margin:14px auto 4px; max-width:560px; }
+.w-pass label{ display:flex; flex-direction:column; gap:4px; font-weight:800; font-size:.86rem; text-align:left; flex:1 1 180px; }
+.w-pass input{ padding:12px 14px; border:2.5px solid var(--line); border-radius:16px; background:var(--soft); color:var(--ink); font:inherit; }
+.w-pass input:focus{ border-color:var(--primary); outline:none; }
+.w-pass[hidden]{ display:none; }
 </style>
 <script src="config.js"></script>
-<script src="vendor.js"></script>
-<script src="excel-store.js"></script>
+<script src="api-store.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
@@ -435,11 +439,15 @@ a.btn{ text-decoration:none; display:inline-block; }
         <p class="w-teamcap" id="wTeamCap"></p>
       </div>
       <div class="w-status wait" id="wStatus" role="status"><i></i>Connecting to the school records…</div>
-      <p class="w-note" id="wNote" hidden>To see and save the team’s records, sign in with your Pine Hills Microsoft account. Records are saved in the Gifted Kids Department team in Microsoft Teams.</p>
+      <p class="w-note" id="wNote" hidden>To see and save the team’s records, enter your name and the staff passcode. Records are saved in the Gifted Kids Department team in Microsoft Teams.</p>
       <p class="w-note" id="wAuth" hidden></p>
+      <form class="w-pass" id="wPass" hidden autocomplete="on">
+        <label><span>Your name</span><input id="wName" name="name" autocomplete="name" placeholder="e.g. Ms Wawa"></label>
+        <label><span>Staff passcode</span><input id="wCode" name="passcode" type="password" autocomplete="current-password"></label>
+        <button class="w-btn" id="wUnlock" type="submit">Unlock</button>
+      </form>
       <div class="w-actions">
-        <button class="w-btn" id="wSignIn" type="button" hidden>Sign in with Microsoft</button>
-        <button class="w-btn" id="wEnter" type="button">Enter the system</button>
+                <button class="w-btn" id="wEnter" type="button">Enter the system</button>
         <button class="w-btn ghost" id="wAvatar" type="button" hidden>Customise my avatar</button>
       </div>
     </div>
@@ -457,10 +465,11 @@ a.btn{ text-decoration:none; display:inline-block; }
         <button class="mi" id="miTeam" type="button">🧑‍⚕️ Therapy team</button>
         <button class="mi" id="miPdf" type="button" hidden>📄 Download PDF report</button>
         <button class="mi" id="miHome" type="button">🏠 Welcome page</button>
+        <button class="mi" id="miLock" type="button" onclick="window.TIR_signOut&&window.TIR_signOut()">🔒 Lock this device</button>
       </div>
     </div>
   </div>
-  <div class="banner warn" id="offlineBanner" hidden><span class="ic">🔒</span><div><b>You’re not connected to the school records</b><p>Sign in with your Pine Hills Microsoft account on the welcome page. Until then you can’t see other staff’s records, and new records can’t be saved.</p></div></div>
+  <div class="banner warn" id="offlineBanner" hidden><span class="ic">🔒</span><div><b>You’re not connected to the school records</b><p>Enter the staff passcode on the welcome page. Until then you can’t see other staff’s records, and new records can’t be saved.</p></div></div>
   <div class="banner move" id="migrate" hidden><span class="ic">📲</span><div><b>Some records are only on this phone</b><p><span id="migrateN"></span> saved on this phone before the app was connected. Move them into the shared system so the whole team, including the HOD, can see them.</p><button class="btn primary" id="migrateBtn" type="button">Move them to the shared system</button></div></div>
   <header class="hero" id="hero">
     <svg class="rainbow" viewBox="0 0 260 180" aria-hidden="true">
@@ -781,7 +790,7 @@ a.btn{ text-decoration:none; display:inline-block; }
   $("#form").addEventListener("submit", async e=>{
     e.preventDefault();
     if(readOnly){ toast("You can view records here, but not add or change them."); return; }
-    if(mode!=="cloud"){ toast(mode==="loading"?"Still connecting. Try again in a moment.":"Sign in with your school Microsoft account to save records for the team."); return; }
+    if(mode!=="cloud"){ toast(mode==="loading"?"Still connecting. Try again in a moment.":"Enter the staff passcode on the welcome page to save records for the team."); return; }
     const r=readForm(); if(!validate(r)) return;
     const btn=$("#saveBtn"); btn.disabled=true;
     try{
@@ -816,7 +825,7 @@ a.btn{ text-decoration:none; display:inline-block; }
   function renderSaveNote(){
     const n=$("#saveNote"); n.textContent="";
     if(mode==="cloud"){ n.append("☁️ ", el("b",{textContent:"Saved online automatically."}), " Every record goes straight into the Therapy Records Excel file in the Gifted Kids Department team in Microsoft Teams, so everyone in the team sees the same records on any device. Use Download PDF report for printing or sharing, and Export CSV for a spreadsheet backup."); }
-    else if(mode==="offline"){ n.append("🔒 ", el("b",{textContent:"Not connected."}), " Sign in with your Pine Hills Microsoft account to see and save the team’s records."); }
+    else if(mode==="offline"){ n.append("🔒 ", el("b",{textContent:"Not connected."}), " Enter the staff passcode on the welcome page to see and save the team’s records."); }
     if(readOnly) n.append(" You have view-only access.");
   }
 
@@ -1238,7 +1247,7 @@ a.btn{ text-decoration:none; display:inline-block; }
   /* ---------- Avatar studio ---------- */
   const studio=$("#studio"); let draftAv=null;
   function openStudio(name){
-    if(mode!=="cloud"){ toast("Sign in with your school Microsoft account to save avatars for the team."); return; }
+    if(mode!=="cloud"){ toast("Enter the staff passcode on the welcome page to save avatars for the team."); return; }
     if(readOnly){ toast("You have view-only access, so you can’t change avatars."); return; }
     closeMenu();
     const nm=(name||myName||"").trim(); const base=nm?cfgFor(nm):defaultCfg("new");
